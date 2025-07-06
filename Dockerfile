@@ -5,6 +5,8 @@ FROM --platform=$BUILDPLATFORM ubuntu:latest AS base
 ENV TERM="xterm" LANG="C.UTF-8" LC_ALL="C.UTF-8"
 ARG TARGETARCH
 ARG HBLINK_INST_DIR=/src/hblink
+ARG S6_OVERLAY_VERSION=3.2.0.2 S6_OVERLAY_INST=/src/S6
+ARG S6_OVERLAY_ADDRESS=https://github.com/just-containers/s6-overlay/releases/download/v
 
 ## apt updates and adds
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections \
@@ -63,8 +65,8 @@ WantedBy=multi-user.target
 EOF
 
 ## hblink enable
-RUN systemctl daemon-reload \
-    systemctl enable hblink
+## RUN systemctl daemon-reload \
+##     systemctl enable hblink
 
 ## install parrot
 RUN cd /opt/HBlink3 \
@@ -90,16 +92,74 @@ WantedBy=multi-user.target
 EOF
 
 ## parrot enable
-RUN systemctl daemon-reload \
-    systemctl enable parrot.service
+## RUN systemctl daemon-reload \
+##     systemctl enable parrot.service
 
 ## HBmonitor
 RUN cd /opt/HBmonitor \
     && /usr/bin/pip3 install setuptools wheel --break-system-packages \
     && /usr/bin/pip3 install -r requirements --break-system-packages \
-    && cp utils/hbmon.service /lib/systemd/system/ \
-    && systemctl daemon-reload \
-    && systemctl enable hbmon
+    && cp utils/hbmon.service /lib/systemd/system/
+    ## && cp utils/hbmon.service /lib/systemd/system/ \
+    ## && systemctl daemon-reload \
+    ## && systemctl enable hbmon
+
+#################################
+###### s6 overlay install  ######
+#################################
+
+## installing the s6_overlay noarch
+RUN wget "${S6_OVERLAY_ADDRESS}${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz" \
+        -O "${S6_OVERLAY_INST}/s6-overlay-noarch.tar.xz" \
+    && tar -C / -xJf "${S6_OVERLAY_INST}/s6-overlay-noarch.tar.xz"
+
+## installing the s6_overlay arch either arm || amd
+RUN if [ "${TARGETARCH}" = "arm64" ]; then \
+        wget "${S6_OVERLAY_ADDRESS}${S6_OVERLAY_VERSION}/s6-overlay-aarch64.tar.xz" \
+            -O "${S6_OVERLAY_INST}/s6-overlay-aarch64.tar.xz" \
+        && tar -C / -xJf "${S6_OVERLAY_INST}/s6-overlay-aarch64.tar.xz" ; \
+    elif [ "${TARGETARCH}" = "amd64" ]; then \
+        wget "${S6_OVERLAY_ADDRESS}${S6_OVERLAY_VERSION}/s6-overlay-x86_64.tar.xz" \
+            -O "${S6_OVERLAY_INST}/s6-overlay-x86_64.tar.xz" \
+        && tar -C / -xJf "${S6_OVERLAY_INST}/s6-overlay-x86_64.tar.xz" ; \
+    else \
+        echo "DANGER WILL ROBINSON. UNKNOWN TARGETARCH" \
+        && exit 1 ; \
+    fi
+
+#####################################
+###### s6 overlay config begin ######
+#####################################
+
+#### systemctl services ####
+
+## Define systemctl as a oneshot s6 service
+COPY <<EOF /etc/s6-overlay/s6-rc.d/systemctl/type
+oneshot 
+EOF
+
+## generate systemctl script 
+RUN cat <<EOF > /etc/s6-overlay/s6-rc.d/systemctl/run
+#!/command/with-contenv sh
+systemctl daemon-reload
+systemctl start hblink.service
+systemctl start parrot.service
+systemctl start hbmon.service
+EOF
+
+RUN chmod +x /etc/s6-overlay/s6-rc.d/systemctl/run
+
+## register systemctl as a service for s6
+RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/systemctl
+
+## register dependencies
+RUN mkdir /etc/s6-overlay/s6-rc.d/systemctl/dependencies.d/ \
+    && touch /etc/s6-overlay/s6-rc.d/systemctl/dependencies.d/customize \
+    && touch /etc/s6-overlay/s6-rc.d/systemctl/dependencies.d/base
+
+###################################
+###### s6 overlay config end ######
+###################################
 
 #####################
 ###### cleanup ######
