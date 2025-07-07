@@ -1,0 +1,11 @@
+image: cbodden/hblink3-docker:latest
+manifests:
+  - image: cbodden/hblink3-docker:latest-amd64
+    platform:
+      architecture: amd64
+      os: linux
+
+  - image: cbodden/hblink3-docker:latest-arm64
+    platform:
+      architecture: arm64
+      os: linux
