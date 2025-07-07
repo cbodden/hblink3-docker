@@ -86,7 +86,7 @@ RUN cd /opt/HBlink3 \
 ## HBmonitor
 RUN cd /opt/HBmonitor \
     && /usr/bin/pip3 install setuptools wheel --break-system-packages \
-    && /usr/bin/pip3 install -r requirements --break-system-packages
+    && /usr/bin/pip3 install -r requirements.txt --break-system-packages
     ## && /usr/bin/pip3 install -r requirements --break-system-packages \
     ## && cp utils/hbmon.service /lib/systemd/system/ \
     ## && systemctl daemon-reload \
@@ -135,10 +135,10 @@ EOF
 ## register hblink as a service for s6
 RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/hblink
 
-## register dependencies
-RUN mkdir /etc/s6-overlay/s6-rc.d/hblink/dependencies.d/ \
-    && touch /etc/s6-overlay/s6-rc.d/hblink/dependencies.d/customize \
-    && touch /etc/s6-overlay/s6-rc.d/hblink/dependencies.d/base
+#### register dependencies
+##RUN mkdir /etc/s6-overlay/s6-rc.d/hblink/dependencies.d/ \
+##    && touch /etc/s6-overlay/s6-rc.d/hblink/dependencies.d/customize \
+##    && touch /etc/s6-overlay/s6-rc.d/hblink/dependencies.d/base
 
 #### parrot ####
 
@@ -156,10 +156,10 @@ EOF
 ## register parrot as a service for s6
 RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/parrot
 
-## register dependencies
-RUN mkdir /etc/s6-overlay/s6-rc.d/parrot/dependencies.d/ \
-    && touch /etc/s6-overlay/s6-rc.d/parrot/dependencies.d/customize \
-    && touch /etc/s6-overlay/s6-rc.d/parrot/dependencies.d/base
+#### register dependencies
+##RUN mkdir /etc/s6-overlay/s6-rc.d/parrot/dependencies.d/ \
+##    && touch /etc/s6-overlay/s6-rc.d/parrot/dependencies.d/customize \
+##    && touch /etc/s6-overlay/s6-rc.d/parrot/dependencies.d/base
 
 #### hbmon ####
 
@@ -177,10 +177,10 @@ EOF
 ## register hbmon as a service for s6
 RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/hbmon
 
-## register dependencies
-RUN mkdir /etc/s6-overlay/s6-rc.d/hbmon/dependencies.d/ \
-    && touch /etc/s6-overlay/s6-rc.d/hbmon/dependencies.d/customize \
-    && touch /etc/s6-overlay/s6-rc.d/hbmon/dependencies.d/base
+#### register dependencies
+##RUN mkdir /etc/s6-overlay/s6-rc.d/hbmon/dependencies.d/ \
+##    && touch /etc/s6-overlay/s6-rc.d/hbmon/dependencies.d/customize \
+##    && touch /etc/s6-overlay/s6-rc.d/hbmon/dependencies.d/base
 
 #####################
 ###### cleanup ######
