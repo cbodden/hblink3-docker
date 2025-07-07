@@ -85,6 +85,7 @@ RUN cd /opt/HBlink3 \
 
 ## HBmonitor
 RUN cd /opt/HBmonitor \
+    && mkdir ../hbmon/log
     && /usr/bin/pip3 install setuptools wheel --break-system-packages \
     && /usr/bin/pip3 install -r requirements.txt --break-system-packages
     ## && /usr/bin/pip3 install -r requirements --break-system-packages \
@@ -164,18 +165,18 @@ RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/parrot
 #### hbmon ####
 
 ## define hbmon as a longrun service
-COPY <<EOF /etc/s6-overlay/s6-rc.d/hbmon/type
+COPY <<EOF /etc/s6-overlay/s6-rc.d/HBmonitor/type
 longrun
 EOF
 
 ## define entrypoint for hbmon && start in fg
-COPY --chmod=700 <<EOF /etc/s6-overlay/s6-rc.d/hbmon/run
+COPY --chmod=700 <<EOF /etc/s6-overlay/s6-rc.d/HBmonitor/run
 #!/command/with-contenv sh
 exec /usr/bin/python3 /opt/HBmonitor/monitor.py
 EOF
 
 ## register hbmon as a service for s6
-RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/hbmon
+RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/HBmonitor
 
 #### register dependencies
 ##RUN mkdir /etc/s6-overlay/s6-rc.d/hbmon/dependencies.d/ \
