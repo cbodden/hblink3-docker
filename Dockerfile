@@ -39,7 +39,6 @@ ADD --keep-git-dir=true https://github.com/lz5pn/HBlink3.git ${HBLINK_INST_DIR}
 ## Move folders
 RUN cd /opt \
     && mv ${HBLINK_INST_DIR}/HBlink3/ /opt/ \
-    && mv ${HBLINK_INST_DIR}/HBmonitor/ /opt/ \
     && mv ${HBLINK_INST_DIR}/dmr_utils3/ /opt/
 
 ## Install dmr_utils
@@ -51,12 +50,6 @@ RUN cd /opt/dmr_utils3 \
 RUN cd /opt/HBlink3 \
     && chmod +x playback.py \
     && mkdir /var/log/hblink
-
-## HBmonitor
-RUN cd /opt/HBmonitor \
-    && rm config.py \
-    && /usr/bin/pip3 install setuptools wheel --break-system-packages \
-    && /usr/bin/pip3 install -r requirements.txt --break-system-packages
 
 #################################
 ###### s6 overlay install  ######
@@ -116,22 +109,6 @@ EOF
 
 ## register parrot as a service for s6
 RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/parrot
-
-#### hbmon ####
-
-## define hbmon as a longrun service
-COPY <<EOF /etc/s6-overlay/s6-rc.d/HBmonitor/type
-longrun
-EOF
-
-## define entrypoint for hbmon && start in fg
-COPY --chmod=700 <<EOF /etc/s6-overlay/s6-rc.d/HBmonitor/run
-#!/command/with-contenv sh
-exec /usr/bin/python3 /opt/HBmonitor/monitor.py
-EOF
-
-## register hbmon as a service for s6
-RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/HBmonitor
 
 #####################
 ###### cleanup ######
