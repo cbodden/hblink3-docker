@@ -47,51 +47,16 @@ RUN cd /opt/dmr_utils3 \
     && /usr/bin/pip3 install --upgrade . --break-system-packages \
     && /usr/bin/pip3 install --upgrade dmr_utils3 --break-system-packages
 
-#### hblink service
-##RUN cat <<EOF > /lib/systemd/system/hblink.service
-##[Unit]
-##Description=Start HBlink
-##After=multi-user.target
-##
-##[Service]
-##ExecStart=/usr/bin/python3 /opt/HBlink3/bridge.py
-##
-##[Install]
-##WantedBy=multi-user.target
-##EOF
-
 ## install parrot
 RUN cd /opt/HBlink3 \
     && chmod +x playback.py \
     && mkdir /var/log/hblink
-
-#### parrot service
-##RUN cat <<EOF > /lib/systemd/system/parrot.service
-##[Unit]
-##Description=HB bridge all Service
-##After=network-online.target syslog.target
-##Wants=network-online.target
-##
-##[Service]
-##StandardOutput=null
-##WorkingDirectory=/opt/HBlink3
-##RestartSec=3
-##ExecStart=/usr/bin/python3 /opt/HBlink3/playback.py -c /opt/HBlink3/playback.cfg
-##Restart=on-abort
-##
-##[Install]
-##WantedBy=multi-user.target
-##EOF
 
 ## HBmonitor
 RUN cd /opt/HBmonitor \
     && rm config.py \
     && /usr/bin/pip3 install setuptools wheel --break-system-packages \
     && /usr/bin/pip3 install -r requirements.txt --break-system-packages
-    ## && /usr/bin/pip3 install -r requirements --break-system-packages \
-    ## && cp utils/hbmon.service /lib/systemd/system/ \
-    ## && systemctl daemon-reload \
-    ## && systemctl enable hbmon
 
 #################################
 ###### s6 overlay install  ######
