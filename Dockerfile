@@ -34,7 +34,7 @@ RUN mkdir -p \
 ############################
 
 ## pulling HBlink3 Repo
-ADD --keep-git-dir=true https://github.com/lz5pn/HBlink3.git#master ${HBLINK_INST_DIR}
+ADD --keep-git-dir=true https://github.com/lz5pn/HBlink3.git ${HBLINK_INST_DIR}
 
 ## Move folders
 RUN cd /opt \
@@ -47,59 +47,47 @@ RUN cd /opt/dmr_utils3 \
     && /usr/bin/pip3 install --upgrade . --break-system-packages \
     && /usr/bin/pip3 install --upgrade dmr_utils3 --break-system-packages
 
-## in compose
-## cd /opt/HBlink3/hblink.cfg
-## cd /opt/HBlink3/rules.py
-
-## hblink service
-RUN cat <<EOF > /lib/systemd/system/hblink.service
-[Unit]
-Description=Start HBlink
-After=multi-user.target
-
-[Service]
-ExecStart=/usr/bin/python3 /opt/HBlink3/bridge.py
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-## hblink enable
-## RUN systemctl daemon-reload \
-##     systemctl enable hblink
+#### hblink service
+##RUN cat <<EOF > /lib/systemd/system/hblink.service
+##[Unit]
+##Description=Start HBlink
+##After=multi-user.target
+##
+##[Service]
+##ExecStart=/usr/bin/python3 /opt/HBlink3/bridge.py
+##
+##[Install]
+##WantedBy=multi-user.target
+##EOF
 
 ## install parrot
 RUN cd /opt/HBlink3 \
     && chmod +x playback.py \
     && mkdir /var/log/hblink
 
-## parrot service
-RUN cat <<EOF > /lib/systemd/system/parrot.service
-[Unit]
-Description=HB bridge all Service
-After=network-online.target syslog.target
-Wants=network-online.target
-
-[Service]
-StandardOutput=null
-WorkingDirectory=/opt/HBlink3
-RestartSec=3
-ExecStart=/usr/bin/python3 /opt/HBlink3/playback.py -c /opt/HBlink3/playback.cfg
-Restart=on-abort
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-## parrot enable
-## RUN systemctl daemon-reload \
-##     systemctl enable parrot.service
+#### parrot service
+##RUN cat <<EOF > /lib/systemd/system/parrot.service
+##[Unit]
+##Description=HB bridge all Service
+##After=network-online.target syslog.target
+##Wants=network-online.target
+##
+##[Service]
+##StandardOutput=null
+##WorkingDirectory=/opt/HBlink3
+##RestartSec=3
+##ExecStart=/usr/bin/python3 /opt/HBlink3/playback.py -c /opt/HBlink3/playback.cfg
+##Restart=on-abort
+##
+##[Install]
+##WantedBy=multi-user.target
+##EOF
 
 ## HBmonitor
 RUN cd /opt/HBmonitor \
     && /usr/bin/pip3 install setuptools wheel --break-system-packages \
-    && /usr/bin/pip3 install -r requirements --break-system-packages \
-    && cp utils/hbmon.service /lib/systemd/system/
+    && /usr/bin/pip3 install -r requirements --break-system-packages
+    ## && /usr/bin/pip3 install -r requirements --break-system-packages \
     ## && cp utils/hbmon.service /lib/systemd/system/ \
     ## && systemctl daemon-reload \
     ## && systemctl enable hbmon
@@ -131,35 +119,68 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
 ###### s6 overlay config begin ######
 #####################################
 
-#### systemctl services ####
+#### hblink ####
 
-## Define systemctl as a oneshot s6 service
-COPY <<EOF /etc/s6-overlay/s6-rc.d/systemctl/type
-oneshot 
+## define hblink as a longrun service
+COPY <<EOF /etc/s6-overlay/s6-rc.d/hblink/type
+longrun
 EOF
 
-## generate systemctl script 
-RUN cat <<EOF > /etc/s6-overlay/s6-rc.d/systemctl/run
+## define entrypoint for hblink && start in fg
+COPY --chmod=700 <<EOF /etc/s6-overlay/s6-rc.d/hblink/run
 #!/command/with-contenv sh
-systemctl daemon-reload
-systemctl start hblink.service
-systemctl start parrot.service
-systemctl start hbmon.service
+exec /usr/bin/python3 /opt/HBlink3/bridge.py
 EOF
 
-RUN chmod +x /etc/s6-overlay/s6-rc.d/systemctl/run
-
-## register systemctl as a service for s6
-RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/systemctl
+## register hblink as a service for s6
+RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/hblink
 
 ## register dependencies
-RUN mkdir /etc/s6-overlay/s6-rc.d/systemctl/dependencies.d/ \
-    && touch /etc/s6-overlay/s6-rc.d/systemctl/dependencies.d/customize \
-    && touch /etc/s6-overlay/s6-rc.d/systemctl/dependencies.d/base
+RUN mkdir /etc/s6-overlay/s6-rc.d/hblink/dependencies.d/ \
+    && touch /etc/s6-overlay/s6-rc.d/hblink/dependencies.d/customize \
+    && touch /etc/s6-overlay/s6-rc.d/hblink/dependencies.d/base
 
-###################################
-###### s6 overlay config end ######
-###################################
+#### parrot ####
+
+## define parrot as a longrun service
+COPY <<EOF /etc/s6-overlay/s6-rc.d/parrot/type
+longrun
+EOF
+
+## define entrypoint for parrot && start in fg
+COPY --chmod=700 <<EOF /etc/s6-overlay/s6-rc.d/parrot/run
+#!/command/with-contenv sh
+exec /usr/bin/python3 /opt/HBlink3/playback.py -c /opt/HBlink3/playback.cfg
+EOF
+
+## register parrot as a service for s6
+RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/parrot
+
+## register dependencies
+RUN mkdir /etc/s6-overlay/s6-rc.d/parrot/dependencies.d/ \
+    && touch /etc/s6-overlay/s6-rc.d/parrot/dependencies.d/customize \
+    && touch /etc/s6-overlay/s6-rc.d/parrot/dependencies.d/base
+
+#### hbmon ####
+
+## define hbmon as a longrun service
+COPY <<EOF /etc/s6-overlay/s6-rc.d/hbmon/type
+longrun
+EOF
+
+## define entrypoint for hbmon && start in fg
+COPY --chmod=700 <<EOF /etc/s6-overlay/s6-rc.d/hbmon/run
+#!/command/with-contenv sh
+exec /usr/bin/python3 /opt/HBmonitor/monitor.py
+EOF
+
+## register hbmon as a service for s6
+RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/hbmon
+
+## register dependencies
+RUN mkdir /etc/s6-overlay/s6-rc.d/hbmon/dependencies.d/ \
+    && touch /etc/s6-overlay/s6-rc.d/hbmon/dependencies.d/customize \
+    && touch /etc/s6-overlay/s6-rc.d/hbmon/dependencies.d/base
 
 #####################
 ###### cleanup ######
@@ -175,8 +196,8 @@ RUN apt -y autoremove \
 ###### exposing ports ######
 ############################
 
-EXPOSE 8080
-EXPOSE 9000
+EXPOSE 8080/tcp
+EXPOSE 9000/tcp
 
 ########################
 ###### entrypoint ######
