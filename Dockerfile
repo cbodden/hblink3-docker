@@ -85,7 +85,6 @@ RUN cd /opt/HBlink3 \
 
 ## HBmonitor
 RUN cd /opt/HBmonitor \
-    && mkdir ../hbmon/log
     && /usr/bin/pip3 install setuptools wheel --break-system-packages \
     && /usr/bin/pip3 install -r requirements.txt --break-system-packages
     ## && /usr/bin/pip3 install -r requirements --break-system-packages \
