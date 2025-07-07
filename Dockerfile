@@ -85,6 +85,7 @@ RUN cd /opt/HBlink3 \
 
 ## HBmonitor
 RUN cd /opt/HBmonitor \
+    && rm config.py \
     && /usr/bin/pip3 install setuptools wheel --break-system-packages \
     && /usr/bin/pip3 install -r requirements.txt --break-system-packages
     ## && /usr/bin/pip3 install -r requirements --break-system-packages \
@@ -135,11 +136,6 @@ EOF
 ## register hblink as a service for s6
 RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/hblink
 
-#### register dependencies
-##RUN mkdir /etc/s6-overlay/s6-rc.d/hblink/dependencies.d/ \
-##    && touch /etc/s6-overlay/s6-rc.d/hblink/dependencies.d/customize \
-##    && touch /etc/s6-overlay/s6-rc.d/hblink/dependencies.d/base
-
 #### parrot ####
 
 ## define parrot as a longrun service
@@ -156,11 +152,6 @@ EOF
 ## register parrot as a service for s6
 RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/parrot
 
-#### register dependencies
-##RUN mkdir /etc/s6-overlay/s6-rc.d/parrot/dependencies.d/ \
-##    && touch /etc/s6-overlay/s6-rc.d/parrot/dependencies.d/customize \
-##    && touch /etc/s6-overlay/s6-rc.d/parrot/dependencies.d/base
-
 #### hbmon ####
 
 ## define hbmon as a longrun service
@@ -176,11 +167,6 @@ EOF
 
 ## register hbmon as a service for s6
 RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/HBmonitor
-
-#### register dependencies
-##RUN mkdir /etc/s6-overlay/s6-rc.d/hbmon/dependencies.d/ \
-##    && touch /etc/s6-overlay/s6-rc.d/hbmon/dependencies.d/customize \
-##    && touch /etc/s6-overlay/s6-rc.d/hbmon/dependencies.d/base
 
 #####################
 ###### cleanup ######
