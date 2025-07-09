@@ -5,6 +5,7 @@ FROM --platform=$BUILDPLATFORM ubuntu:latest AS base
 ENV TERM="xterm" LANG="C.UTF-8" LC_ALL="C.UTF-8"
 ARG TARGETARCH
 ARG HBLINK_INST_DIR=/src/hblink
+ARG HBMON_INST_DIR=/src/hbmon
 ARG S6_OVERLAY_VERSION=3.2.0.2 S6_OVERLAY_INST=/src/S6
 ARG S6_OVERLAY_ADDRESS=https://github.com/just-containers/s6-overlay/releases/download/v
 
@@ -27,6 +28,7 @@ RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selectio
 ## making dirs for installs
 RUN mkdir -p \
     ${HBLINK_INST_DIR} \
+    ${HBMON_INST_DIR} \
     ${S6_OVERLAY_INST}
 
 ############################
@@ -36,9 +38,13 @@ RUN mkdir -p \
 ## pulling HBlink3 Repo
 ADD --keep-git-dir=true https://github.com/lz5pn/HBlink3.git ${HBLINK_INST_DIR}
 
+## pulling HBmonitor Repo
+ADD --keep-git-dir=true https://github.com/sp2ong/HBmonitor ${HBMON_INST_DIR}
+
 ## Move folders
 RUN cd /opt \
     && mv ${HBLINK_INST_DIR}/HBlink3/ /opt/ \
+    && mv ${HBMON_INST_DIR}/HBmonitor/ /opt/ \
     && mv ${HBLINK_INST_DIR}/dmr_utils3/ /opt/
 
 ## Install dmr_utils
@@ -50,6 +56,10 @@ RUN cd /opt/dmr_utils3 \
 RUN cd /opt/HBlink3 \
     && chmod +x playback.py \
     && mkdir /var/log/hblink
+
+## install hbmonitor
+RUN cd /opt/HBmonitor \
+    && /usr/bin/pip3 install -r requirements.txt --break-system-packages
 
 #################################
 ###### s6 overlay install  ######
@@ -85,7 +95,7 @@ COPY <<EOF /etc/s6-overlay/s6-rc.d/hblink/type
 longrun
 EOF
 
-## define entrypoint for hblink && start in fg
+## define entrypoint for hblink
 COPY --chmod=700 <<EOF /etc/s6-overlay/s6-rc.d/hblink/run
 #!/command/with-contenv sh
 exec /usr/bin/python3 /opt/HBlink3/bridge.py
@@ -101,7 +111,7 @@ COPY <<EOF /etc/s6-overlay/s6-rc.d/parrot/type
 longrun
 EOF
 
-## define entrypoint for parrot && start in fg
+## define entrypoint for parrot
 COPY --chmod=700 <<EOF /etc/s6-overlay/s6-rc.d/parrot/run
 #!/command/with-contenv sh
 exec /usr/bin/python3 /opt/HBlink3/playback.py -c /opt/HBlink3/playback.cfg
@@ -109,6 +119,22 @@ EOF
 
 ## register parrot as a service for s6
 RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/parrot
+
+#### hbmonitor ####
+
+## define hbmonitor as a longrun service
+COPY <<EOF /etc/s6-overlay/s6-rc.d/hbmonitor/type
+longrun
+EOF
+
+## define entrypoint for hbmonitor
+COPY --chmod=700 <<EOF /etc/s6-overlay/s6-rc.d/hbmonitor/run
+#!/command/with-contenv sh
+exec /usr/bin/python3 /opt/HBmonitor/monitor.py
+EOF
+
+## register hbmonitor as a service for s6
+RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/hbmonitor
 
 #####################
 ###### cleanup ######
