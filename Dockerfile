@@ -39,15 +39,16 @@ RUN mkdir -p \
 ADD --keep-git-dir=true https://github.com/lz5pn/HBlink3.git ${HBLINK_INST_DIR}
 
 ## pulling HBmonitor Repo
-ADD --keep-git-dir=true https://github.com/sp2ong/HBmonitor ${HBMON_INST_DIR}
+ADD --keep-git-dir=true https://github.com/sp2ong/HBmonitor.git ${HBMON_INST_DIR}
 
-## Move folders
+## Move HBlink folder
 RUN cd /opt \
-    && mv ${HBLINK_INST_DIR}/HBlink3/ /opt/ \
-    && mv ${HBMON_INST_DIR}/HBmonitor/ /opt/ \
-    && mv ${HBLINK_INST_DIR}/dmr_utils3/ /opt/
+    && mv ${HBLINK_INST_DIR}/HBlink3/ /opt/
 
 ## Install dmr_utils
+RUN cd /opt \
+    && mv ${HBLINK_INST_DIR}/dmr_utils3/ /opt/
+
 RUN cd /opt/dmr_utils3 \
     && /usr/bin/pip3 install --upgrade . --break-system-packages \
     && /usr/bin/pip3 install --upgrade dmr_utils3 --break-system-packages
@@ -58,6 +59,9 @@ RUN cd /opt/HBlink3 \
     && mkdir /var/log/hblink
 
 ## install hbmonitor
+RUN cd /opt \
+    && mv ${HBMON_INST_DIR}/HBmonitor/ /opt/
+
 RUN cd /opt/HBmonitor \
     && /usr/bin/pip3 install -r requirements.txt --break-system-packages
 
