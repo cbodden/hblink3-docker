@@ -60,7 +60,7 @@ RUN cd /opt/HBlink3 \
 
 ## install hbmonitor
 RUN cd /opt \
-    && mv ${HBMON_INST_DIR}/HBmonitor/ /opt/
+    && mv ${HBMON_INST_DIR}/ /opt/HBmonitor
 
 RUN cd /opt/HBmonitor \
     && /usr/bin/pip3 install -r requirements.txt --break-system-packages
