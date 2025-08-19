@@ -1,11 +1,14 @@
-REPORT_NAME     = 'Dashboard of local DMR network'           # Name of the monitored HBlink system
+REPORT_NAME     = 'poa.nyc hblink server'        # Name of the monitored HBlink system
+#
 CONFIG_INC      = True                           # Include HBlink stats
-LASTHEARD_INC   = True                           # Include Lastheard (10)
-HOMEBREW_INC    = True                           # Include Homebrew Peers 
-BRIDGES_INC     = True                           # Include Bridge stats (confbrige.py)
-HBLINK_IP       = '127.0.0.1'                    # HBlink's IP Address
+HOMEBREW_INC    = True                           # Display Homebrew Peers status
+LASTHEARD_INC   = False                          # Display lastheard table on main page
+BRIDGES_INC     = True                           # Display Bridge status and button
+EMPTY_MASTERS   = True                           # Display (True) or not (False) empty master in status
+#
+HBLINK_IP       = '0.0.0.0'                      # HBlink's IP Address
 HBLINK_PORT     = 4321                           # HBlink's TCP reporting socket
-FREQUENCY       = 10                             # Frequency to push updates to web clients
+FREQUENCY       = 1                              # Frequency to push updates to web clients
 WEB_SERVER_PORT = 8080                           # Has to be above 1024 if you're not running as root
 CLIENT_TIMEOUT  = 0                              # Clients are timed out after this many seconds, 0 to disable
 
@@ -18,16 +21,16 @@ WEB_USER =  'hblink'
 WEB_PASS =  'hblink'
 
 # Files and stuff for loading alias files for mapping numbers to names
-PATH            = './'                           # MUST END IN '/'
+PATH            = '/alias/'                      # MUST END IN '/'
 PEER_FILE       = 'peer_ids.json'                # Will auto-download from DMR-MARC
 SUBSCRIBER_FILE = 'subscriber_ids.json'          # Will auto-download from DMR-MARC
 TGID_FILE       = 'talkgroup_ids.json'           # User provided, should be in "integer TGID, TGID name" format
 LOCAL_SUB_FILE  = 'local_subscriber_ids.json'    # User provided (optional, leave '' if you don't use it), follow the format of DMR-MARC
 LOCAL_PEER_FILE = 'local_peer_ids.json'          # User provided (optional, leave '' if you don't use it), follow the format of DMR-MARC
-FILE_RELOAD     = 30                              # Number of days before we reload DMR-MARC database files
+FILE_RELOAD     = 30                             # Number of days before we reload DMR-MARC database files
 PEER_URL        = 'https://database.radioid.net/static/rptrs.json'
 SUBSCRIBER_URL  = 'https://database.radioid.net/static/users.json'
 
 # Settings for log files
-LOG_PATH        = './log/'                       # MUST END IN '/'
+LOG_PATH        = '/alias/log/'                  # MUST END IN '/'
 LOG_NAME        = 'hbmon.log'
