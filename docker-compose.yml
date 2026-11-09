@@ -6,7 +6,7 @@ services:
     hostname: radio-hblink3
     image: "cbodden/hblink3-docker:v3"
     ## host networking: hblink listens on one UDP port per SERVER / OUTBOUND / OPENBRIDGE stanza,
-    ## plus the dashboard on 8080/tcp and the reporting feed on 4321/tcp
+    ## plus the dashboard on 8080/tcp (and the reporting feed on 4321/tcp unless it uses the unix socket)
     network_mode: host
     restart: unless-stopped
     volumes:
