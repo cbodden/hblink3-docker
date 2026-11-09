@@ -1,15 +1,32 @@
-## hblink3 v3 - same host networking + volumes as the current stack
+## hblink3 v3 - the portainer stack (project hblink3) running on server-sendai-005
 ## hblink.cfg / rules.py come from v3/migrate_config.py, config.py from v3/dashboard-config.py
+x-defaults: &defaults
+  restart: ${RESTART}
+  logging:
+    driver: loki
+    options:
+      loki-url: "http://monitoring.local:3100/loki/api/v1/push"
+
 services:
-  hblink3:
+  radio-hblink3:
     container_name: radio-hblink3
     hostname: radio-hblink3
-    image: "cbodden/hblink3-docker:v3-test"
-    network_mode: host
-    restart: unless-stopped
+    ## hblink3 v3 (n0mjs710) - rollback: image cbodden/hblink3-docker:pre-v3 (or :latest) + the old mounts below
+    image: "cbodden/hblink3-docker:v3"
+    network_mode: "host"
+    <<: [*defaults]
+    ports:
+      - '8080:8080/tcp'               # v3 dashboard
+      - '54000-54099:54000-54099'     # Master Ports (99 Masters)
+      - '62031-62050:62031-62050'     # MMDVM & OBP Ports
+      - '4321:4321/tcp'               # TCP reporting feed
     volumes:
-      - "/etc/localtime:/etc/localtime:ro"
       - "${STORAGE}/hblink3-docker/alias/:/alias/"
       - "${STORAGE}/hblink3-docker/v3/hblink.cfg:/opt/HBlink3/hblink.cfg"
       - "${STORAGE}/hblink3-docker/v3/rules.py:/opt/HBlink3/rules.py"
       - "${STORAGE}/hblink3-docker/v3/config.py:/opt/HBlink3/dashboard/config.py"
+      ## pre-v3 mounts:
+      ## - "${STORAGE}/hblink3-docker/hblink.cfg:/opt/HBlink3/hblink.cfg"
+      ## - "${STORAGE}/hblink3-docker/rules.py:/opt/HBlink3/rules.py"
+      ## - "${STORAGE}/hblink3-docker/config.py:/opt/HBmonitor/config.py"
+      - "/etc/localtime:/etc/localtime:ro"
