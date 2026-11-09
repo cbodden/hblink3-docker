@@ -1,79 +1,156 @@
 # hblink3-docker
 
-HBlink3 DMR server in a container, run under s6-overlay with its dashboard and a parrot.
+[HBlink3](https://github.com/n0mjs710/hblink3) - a DMR server / conference bridge - in one container, with its
+web dashboard and a parrot (echo test on TG 9999), all run under [s6-overlay](https://github.com/just-containers/s6-overlay).
+Multi-arch (amd64 / arm64) images on Docker Hub as `cbodden/hblink3-docker` and on ghcr.
 
-Two images are built from this repo:
-
-| | `Dockerfile` (legacy) | `v3/Dockerfile` |
+| service | what | where |
 |---|---|---|
-| HBlink3 | [lz5pn/HBlink3](https://github.com/lz5pn/HBlink3) (frozen 2020) | [n0mjs710/hblink3](https://github.com/n0mjs710/hblink3) (pinned past v3.0.0 for XLX support) |
-| dashboard | [sp2ong/HBmonitor](https://github.com/sp2ong/HBmonitor) on 8080 (archived) | v3's own dashboard on 8080 |
-| parrot | `playback.py` | the same legacy `playback.py`, in its own venv |
-| tags | `:test` / `:latest` / `:X.Y.Z` | `:v3-test` / `:v3` / `:v3-X.Y.Z` |
+| `hblink` | `bridge.py` from n0mjs710/hblink3 v3 | one UDP port per system in `hblink.cfg`, reporting feed on 4321/tcp |
+| `dashboard` | the hblink3 v3 web dashboard | http on 8080, live updates over a websocket at `/ws` |
+| `parrot` | the classic twisted `playback.py` (v3 archived it) | HBP server on 127.0.0.1:54100 |
 
-## builds
+## quick start
 
-GitHub Actions (`.github/workflows/docker-images.yml`) builds both images on native amd64 + arm64
-runners and pushes multi-arch tags to Docker Hub (`cbodden/hblink3-docker`) and ghcr:
-
-- push to `testing` -> `:test` and `:v3-test`
-- merge to `main` -> `:latest` and `:v3`, plus a weekly rebuild for base image updates
-- tag `vX.Y.Z` -> `:X.Y.Z` and `:v3-X.Y.Z`
-
-Needs the repo secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`.
-
-Upstream repos and s6-overlay are pinned by `ARG`s at the top of each Dockerfile.
-
-## upstream check
-
-`.github/workflows/upstream-check.yml` runs every Monday (from `main`) and compares the pins with upstream:
-
-- n0mjs710/hblink3 `main` vs `HBLINK_GIT_REF` in `v3/Dockerfile`
-- the latest s6-overlay release vs `S6_OVERLAY_VERSION` in both Dockerfiles
-
-When one has moved it opens a PR into `testing` from `upstream/<name>-<version>` that bumps the pin, with the
-new commits / CHANGELOG (including anything marked "Action required") in the description, and starts a
-docker images build on that branch as a check. Nothing merges or deploys on its own. A newer version
-supersedes (closes) the older PR; closing a PR without merging stops that version being proposed again.
-Run it by hand from the Actions tab (`dry_run` reports only). Needs "Allow GitHub Actions to create and
-approve pull requests" on in the repo settings.
-
-## volumes
-
-| legacy | v3 | |
-|---|---|---|
-| `/opt/HBlink3/hblink.cfg` | `/opt/HBlink3/hblink.cfg` | main config |
-| `/opt/HBlink3/rules.py` | `/opt/HBlink3/rules.py` | bridges |
-| `/opt/HBmonitor/config.py` | `/opt/HBlink3/dashboard/config.py` | dashboard config |
-| `/alias/` | `/alias/` | radioid alias files |
-
-Both run with host networking (see `docker-compose.yml` / `v3/docker-compose.yml`).
-
-## moving to v3
-
-v3 renamed the system modes and moved XLX links into their own table, so the configs need converting.
-Unknown modes are skipped silently by v3, so don't hand-edit - use the script, which fails loudly instead.
-
-1. convert the live configs (writes new files, leaves the old ones alone):
+1. make a folder for the config (the example compose file uses `${STORAGE}/hblink3-docker`) and copy the samples
+   out of the image:
 
    ```sh
-   python3 v3/migrate_config.py hblink.cfg rules.py v3/hblink.cfg v3/rules.py
+   mkdir -p hblink3-docker/alias && cd hblink3-docker
+   img=cbodden/hblink3-docker:v3
+   docker run --rm --entrypoint cat $img /opt/HBlink3/hblink-SAMPLE.cfg          > hblink.cfg
+   docker run --rm --entrypoint cat $img /opt/HBlink3/rules_SAMPLE.py            > rules.py
+   docker run --rm --entrypoint cat $img /opt/HBlink3/dashboard/config_sample.py > config.py
    ```
 
-   - `MODE: MASTER` -> `SERVER` (`MAX_PEERS` -> `MAX_REPEATERS`)
-   - `MODE: PEER` -> `OUTBOUND` (`MASTER_IP`/`MASTER_PORT` -> `SERVER_IP`/`SERVER_PORT`)
-   - `MODE: XLXPEER` + `XLXMODULE: 4004` -> `OUTBOUND` + `XLX_MODULE: D`, members moved to `XLX_BRIDGES`
-   - empty `IP:` -> `0.0.0.0`, `EXPORT_AMBE` / `XLXOPTIONS` dropped, `UNIT = []` added if missing
+   or start `config.py` from [`v3/dashboard-config.py`](v3/dashboard-config.py), which already points the
+   alias files at `/alias/`.
 
-2. copy `v3/dashboard-config.py` to `v3/config.py` next to them.
-3. swap the stack to `v3/docker-compose.yml` (`:v3`). Host networking means the two can't run side by side.
-4. point the reverse proxy's `/ws` at the dashboard port (8080) without stripping `/ws` - HBmonitor's
-   websocket was a separate port (9000) behind a stripped `/ws`.
-5. check: the log shows each repeater logging in and `XLX module link sent: unlink then module X` per XLX
-   system; xlxd shows each module linked; parrot on TG 9999 echoes; dashboard on :8080 updates live.
-6. roll back by pointing the stack at `:latest` (or the old image) with the old files and the proxy's
-   `/ws` back on 9000 - nothing in the old files was changed.
+2. edit them - see [configuration](#configuration) below.
+3. start it with [`docker-compose.yml`](docker-compose.yml):
 
-Done on server-sendai-005 2026-11-09: the old image is kept locally as `cbodden/hblink3-docker:pre-v3`,
-Portainer's original stack file as `docker-compose.yml.pre-v3` next to it, and the Traefik route as
-`/docker-swarm/appdata/traefik/hblink.yml.bak-pre-v3`.
+   ```sh
+   STORAGE=/path/above/hblink3-docker docker compose up -d
+   docker logs -f radio-hblink3
+   ```
+
+4. open `http://<host>:8080`.
+
+The container uses host networking: hblink needs a UDP port per system, and with host networking
+those don't have to be listed (or kept in sync) in the compose file.
+
+## configuration
+
+Upstream's [CONFIGURING.md](https://github.com/n0mjs710/hblink3/blob/main/CONFIGURING.md) covers every
+setting. The parts that matter for this container:
+
+| file | mounted at | notes |
+|---|---|---|
+| `hblink.cfg` | `/opt/HBlink3/hblink.cfg` | `[REPORTS]` must have `REPORT: True`, `REPORT_PORT: 4321`, `REPORT_CLIENTS: 127.0.0.1` for the dashboard |
+| `rules.py` | `/opt/HBlink3/rules.py` | must define `BRIDGES` and `UNIT` (`UNIT = []` is fine); XLX systems go in `XLX_BRIDGES` |
+| `config.py` | `/opt/HBlink3/dashboard/config.py` | dashboard: `HBLINK_IP = '127.0.0.1'`, `HBLINK_PORT = 4321`, `WEB_PORT = 8080` |
+| `alias/` | `/alias/` | radioid peer / subscriber / talkgroup files the dashboard downloads and reads (`PATH = '/alias/'`) |
+
+v3 gotchas:
+
+- system modes are `SERVER` (repeaters / hotspots connect in), `OUTBOUND` (we connect out, including to
+  XLX) and `OPENBRIDGE`. A stanza with any other `MODE` - like the old `MASTER` / `PEER` - is **skipped
+  without an error**.
+- `IP:` must be an address (`0.0.0.0` for all); an empty value stops startup.
+- XLX: `MODE: OUTBOUND` with `XLX_MODULE: <letter>`, `LOOSE: True`, `SERVER_PORT: 62030`, and the system
+  mapped to one bridge in `XLX_BRIDGES` (not listed in `BRIDGES`).
+
+### parrot
+
+The parrot listens on 127.0.0.1:54100 inside the container. Connect hblink to it with an `OUTBOUND`
+stanza and put it on a TG 9999 bridge:
+
+```ini
+[PARROT]
+MODE: OUTBOUND
+ENABLED: True
+LOOSE: False
+IP: 0.0.0.0
+PORT: 54099
+SERVER_IP: 127.0.0.1
+SERVER_PORT: 54100
+PASSPHRASE: <see below>
+CALLSIGN: ECHO
+RADIO_ID: 9999
+...                   # the rest of an OUTBOUND stanza as in hblink-SAMPLE.cfg
+```
+
+```python
+BRIDGES = {
+    'PARROT': [
+        {'SYSTEM': 'PARROT',     'TS': 2, 'TGID': 9999, 'ACTIVE': True, 'TIMEOUT': 2, 'TO_TYPE': 'NONE', 'ON': [9999], 'OFF': [],     'RESET': []},
+        {'SYSTEM': 'SERVER-1',   'TS': 2, 'TGID': 9999, 'ACTIVE': True, 'TIMEOUT': 2, 'TO_TYPE': 'OFF',  'ON': [9999], 'OFF': [0, 1], 'RESET': []},
+    ],
+}
+```
+
+The passphrase has to match the one the parrot ships with:
+
+```sh
+docker run --rm --entrypoint grep cbodden/hblink3-docker:v3 PASSPHRASE /opt/parrot/playback.cfg
+```
+
+### reverse proxy
+
+Send everything, including `/ws`, to port 8080 and let websocket upgrades through. Don't strip `/ws` -
+the dashboard serves its websocket there itself. (HBmonitor, in the legacy image, used a separate port
+9000 behind a stripped `/ws`.)
+
+## images && tags
+
+| tag | built from | |
+|---|---|---|
+| `:v3` | `v3/Dockerfile` on `main` | **use this** |
+| `:v3-test` | `v3/Dockerfile` on `testing` | for trying changes before they reach `main` |
+| `:latest` / `:test` | `Dockerfile` on `main` / `testing` | legacy: [lz5pn/HBlink3](https://github.com/lz5pn/HBlink3) (frozen 2020) + [HBmonitor](https://github.com/sp2ong/HBmonitor) (archived) - kept for rollback |
+| `:v3-X.Y.Z` / `:X.Y.Z` | a `vX.Y.Z` git tag | |
+
+Every upstream source is pinned by an `ARG` at the top of its Dockerfile: `HBLINK_GIT_REF` (n0mjs710/hblink3,
+currently past v3.0.0 - the tag predates XLX support), `PARROT_GIT_REF`, `S6_OVERLAY_VERSION`, and the base is
+`ubuntu:24.04`.
+
+### CI
+
+- [`docker-images.yml`](.github/workflows/docker-images.yml) builds both images on native amd64 && arm64
+  runners and pushes them to Docker Hub && ghcr: push to `testing` -> the `-test` tags, merge to `main` ->
+  `:v3` && `:latest`, plus a rebuild every Monday for base image / security updates. Needs the repo secrets
+  `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`.
+- [`upstream-check.yml`](.github/workflows/upstream-check.yml) runs every Monday and opens a PR into
+  `testing` when n0mjs710/hblink3 `main` or s6-overlay has moved past the pin. The PR only bumps the pin;
+  its description lists the new commits, CHANGELOG lines marked "Action required", and the changed files to
+  check, and an image build runs on the branch as a check. A newer version closes the older PR; closing a PR
+  without merging stops that version being proposed again. Needs "Allow GitHub Actions to create and approve
+  pull requests" on in the repo settings.
+
+Nothing merges or deploys by itself. The usual flow for an upstream PR:
+
+1. read the PR and wait for the build check
+2. merge it into `testing` -> `:v3-test`
+3. run `:v3-test` on the server and check repeater logins, XLX links, the parrot and the dashboard
+4. merge `testing` into `main` -> `:v3`, then pull / redeploy the stack
+
+## moving from the legacy image
+
+v3 renamed the system modes and moved XLX links into their own table. Convert the old files with
+[`v3/migrate_config.py`](v3/migrate_config.py) rather than by hand - it fails loudly on anything v3 would
+silently skip:
+
+```sh
+python3 v3/migrate_config.py old/hblink.cfg old/rules.py new/hblink.cfg new/rules.py
+```
+
+- `MODE: MASTER` -> `SERVER` (`MAX_PEERS` -> `MAX_REPEATERS`)
+- `MODE: PEER` -> `OUTBOUND` (`MASTER_IP` / `MASTER_PORT` -> `SERVER_IP` / `SERVER_PORT`)
+- `MODE: XLXPEER` + `XLXMODULE: 4004` -> `OUTBOUND` + `XLX_MODULE: D`, its `BRIDGES` entry moved to `XLX_BRIDGES`
+- empty `IP:` -> `0.0.0.0`; `EXPORT_AMBE` / `XLXOPTIONS` dropped; `UNIT = []` added if missing
+
+The old files are only read. Then swap the image to `:v3`, mount the new files (and a dashboard `config.py`)
+as above, and point the proxy's `/ws` at 8080. Both versions use the same ports, so it's a stop / start swap.
+To roll back, put back `:latest` with the old files and the old proxy rule.
+
+[`configs/`](configs/) holds legacy-format example files from before the move.
