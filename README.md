@@ -152,5 +152,3 @@ python3 v3/migrate_config.py old/hblink.cfg old/rules.py new/hblink.cfg new/rule
 The old files are only read. Then swap the image to `:v3`, mount the new files (and a dashboard `config.py`)
 as above, and point the proxy's `/ws` at 8080. Both versions use the same ports, so it's a stop / start swap.
 To roll back, put back `:latest` with the old files and the old proxy rule.
-
-[`configs/`](configs/) holds legacy-format example files from before the move.
