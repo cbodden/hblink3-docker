@@ -104,7 +104,7 @@ exec /opt/venv/bin/python bridge.py -c hblink.cfg -r rules.py
 EOF
 
 ## register hblink as a service for s6
-RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/hblink
+RUN touch /etc/s6-overlay/user-bundles.d/user/contents.d/hblink
 
 #### parrot ####
 
@@ -121,7 +121,7 @@ exec /opt/parrot-venv/bin/python playback.py -c playback.cfg
 EOF
 
 ## register parrot as a service for s6
-RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/parrot
+RUN touch /etc/s6-overlay/user-bundles.d/user/contents.d/parrot
 
 #### dashboard ####
 
@@ -138,7 +138,7 @@ exec /opt/venv/bin/python server.py
 EOF
 
 ## register dashboard as a service for s6
-RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/dashboard
+RUN touch /etc/s6-overlay/user-bundles.d/user/contents.d/dashboard
 
 #####################
 ###### cleanup ######

@@ -71,7 +71,10 @@ RUN cd /opt/HBlink3 \
 RUN cd /opt \
     && mv ${HBMON_INST_DIR}/ /opt/HBmonitor
 
+## autobahn pinned to what the 2025 image ran - newer ones want a cryptography
+## that debian's pyopenssl (used by twisted) can't load
 RUN cd /opt/HBmonitor \
+    && /usr/bin/pip3 install autobahn==24.4.2 --break-system-packages \
     && /usr/bin/pip3 install -r requirements.txt --break-system-packages
 
 #################################
@@ -115,7 +118,7 @@ exec /usr/bin/python3 /opt/HBlink3/bridge.py
 EOF
 
 ## register hblink as a service for s6
-RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/hblink
+RUN touch /etc/s6-overlay/user-bundles.d/user/contents.d/hblink
 
 #### parrot ####
 
@@ -131,7 +134,7 @@ exec /usr/bin/python3 /opt/HBlink3/playback.py -c /opt/HBlink3/playback.cfg
 EOF
 
 ## register parrot as a service for s6
-RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/parrot
+RUN touch /etc/s6-overlay/user-bundles.d/user/contents.d/parrot
 
 #### hbmonitor ####
 
@@ -147,7 +150,7 @@ exec /usr/bin/python3 /opt/HBmonitor/monitor.py
 EOF
 
 ## register hbmonitor as a service for s6
-RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/hbmonitor
+RUN touch /etc/s6-overlay/user-bundles.d/user/contents.d/hbmonitor
 
 #####################
 ###### cleanup ######
