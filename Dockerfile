@@ -1,16 +1,25 @@
-## hblink3
 # syntax=docker/dockerfile:1-labs
-FROM --platform=$BUILDPLATFORM ubuntu:latest AS base
+## hblink3
+## pinned to 24.04 - ubuntu:latest is 26.04 and hbmonitor's old jinja2 / markupsafe pins aren't tested there
+FROM ubuntu:24.04 AS base
 
 ENV TERM="xterm" LANG="C.UTF-8" LC_ALL="C.UTF-8"
 ARG TARGETARCH
 ARG HBLINK_INST_DIR=/src/hblink
 ARG HBMON_INST_DIR=/src/hbmon
-ARG S6_OVERLAY_VERSION=3.2.0.2 S6_OVERLAY_INST=/src/S6
+ARG S6_OVERLAY_VERSION=3.2.3.2 S6_OVERLAY_INST=/src/S6
 ARG S6_OVERLAY_ADDRESS=https://github.com/just-containers/s6-overlay/releases/download/v
+## upstream repos pinned to commits (both are frozen upstream)
+ARG HBLINK_GIT_REF=23a260e8def6a118d6cf850954d9d475f1d78177 HBMON_GIT_REF=1bb168d17abc63868d21451dba7def54f3c387d7
+## optional ubuntu archive mirror (ex: http://azure.archive.ubuntu.com/ubuntu on github amd64 runners)
+ARG UBUNTU_MIRROR
 
 ## apt updates and adds
-RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections \
+RUN if [ -n "${UBUNTU_MIRROR}" ]; then \
+        sed -i "s|http://archive.ubuntu.com/ubuntu|${UBUNTU_MIRROR}|g" /etc/apt/sources.list.d/ubuntu.sources ; \
+    fi \
+    && echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries \
+    && echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections \
     && apt update \
     && apt upgrade -y \
     && apt install -y \
@@ -36,10 +45,10 @@ RUN mkdir -p \
 ############################
 
 ## pulling HBlink3 Repo
-ADD --keep-git-dir=true https://github.com/lz5pn/HBlink3.git ${HBLINK_INST_DIR}
+ADD --keep-git-dir=true https://github.com/lz5pn/HBlink3.git#${HBLINK_GIT_REF} ${HBLINK_INST_DIR}
 
 ## pulling HBmonitor Repo
-ADD --keep-git-dir=true https://github.com/sp2ong/HBmonitor.git ${HBMON_INST_DIR}
+ADD --keep-git-dir=true https://github.com/sp2ong/HBmonitor.git#${HBMON_GIT_REF} ${HBMON_INST_DIR}
 
 ## Move HBlink folder
 RUN cd /opt \
