@@ -4,7 +4,7 @@ services:
   hblink3:
     container_name: radio-hblink3
     hostname: radio-hblink3
-    image: "cbodden/hblink3-docker:v3"
+    image: "cbodden/hblink3-docker:latest"
     ## host networking: hblink listens on one UDP port per SERVER / OUTBOUND / OPENBRIDGE stanza,
     ## plus the dashboard on 8080/tcp (and the reporting feed on 4321/tcp unless it uses the unix socket)
     network_mode: host
@@ -24,7 +24,7 @@ services:
   ## legacy image (lz5pn HBlink3 + HBmonitor) - only for rolling back; its configs use the old format
   ## and HBmonitor's config.py mounts at /opt/HBmonitor/config.py (web 8080, websocket 9000)
   # hblink3:
-  #   image: "cbodden/hblink3-docker:latest"
+  #   image: "cbodden/hblink3-docker:legacy"
   #   volumes:
   #     - "${STORAGE}/hblink3-docker/legacy/hblink.cfg:/opt/HBlink3/hblink.cfg"
   #     - "${STORAGE}/hblink3-docker/legacy/rules.py:/opt/HBlink3/rules.py"

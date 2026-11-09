@@ -17,7 +17,7 @@ Multi-arch (amd64 / arm64) images on Docker Hub as `cbodden/hblink3-docker` and 
 
    ```sh
    mkdir -p hblink3-docker/alias && cd hblink3-docker
-   img=cbodden/hblink3-docker:v3
+   img=cbodden/hblink3-docker:latest
    docker run --rm --entrypoint cat $img /opt/HBlink3/hblink-SAMPLE.cfg          > hblink.cfg
    docker run --rm --entrypoint cat $img /opt/HBlink3/rules_SAMPLE.py            > rules.py
    docker run --rm --entrypoint cat $img /opt/HBlink3/dashboard/config_sample.py > config.py
@@ -92,7 +92,7 @@ BRIDGES = {
 The passphrase has to match the one the parrot ships with:
 
 ```sh
-docker run --rm --entrypoint grep cbodden/hblink3-docker:v3 PASSPHRASE /opt/parrot/playback.cfg
+docker run --rm --entrypoint grep cbodden/hblink3-docker:latest PASSPHRASE /opt/parrot/playback.cfg
 ```
 
 ### reverse proxy
@@ -105,10 +105,12 @@ the dashboard serves its websocket there itself. (HBmonitor, in the legacy image
 
 | tag | built from | |
 |---|---|---|
-| `:v3` | `v3/Dockerfile` on `main` | **use this** |
-| `:v3-test` | `v3/Dockerfile` on `testing` | for trying changes before they reach `main` |
-| `:latest` / `:test` | `Dockerfile` on `main` / `testing` | legacy: [lz5pn/HBlink3](https://github.com/lz5pn/HBlink3) (frozen 2020) + [HBmonitor](https://github.com/sp2ong/HBmonitor) (archived) - kept for rollback |
-| `:v3-X.Y.Z` / `:X.Y.Z` | a `vX.Y.Z` git tag | |
+| `:latest` | `v3/Dockerfile` on `main` | **use this** (also published as `:v3`) |
+| `:test` | `v3/Dockerfile` on `testing` | for trying changes before they reach `main` |
+| `:legacy` / `:legacy-test` | `Dockerfile` on `main` / `testing` | legacy: [lz5pn/HBlink3](https://github.com/lz5pn/HBlink3) (frozen 2020) + [HBmonitor](https://github.com/sp2ong/HBmonitor) (archived) - kept for rollback |
+| `:X.Y.Z` / `:legacy-X.Y.Z` | a `vX.Y.Z` git tag | |
+
+Before 2026-11-09 the tags were the other way round (`:latest` was the legacy image, v3 was `:v3`).
 
 Every upstream source is pinned by an `ARG` at the top of its Dockerfile: `HBLINK_GIT_REF` (n0mjs710/hblink3,
 currently past v3.0.0 - the tag predates XLX support), `PARROT_GIT_REF`, `S6_OVERLAY_VERSION`, and the base is
@@ -118,7 +120,7 @@ currently past v3.0.0 - the tag predates XLX support), `PARROT_GIT_REF`, `S6_OVE
 
 - [`docker-images.yml`](.github/workflows/docker-images.yml) builds both images on native amd64 && arm64
   runners and pushes them to Docker Hub && ghcr: push to `testing` -> the `-test` tags, merge to `main` ->
-  `:v3` && `:latest`, plus a rebuild every Monday for base image / security updates. Needs the repo secrets
+  `:latest` (+ `:v3`) && `:legacy`, plus a rebuild every Monday for base image / security updates. Needs the repo secrets
   `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`.
 - [`upstream-check.yml`](.github/workflows/upstream-check.yml) runs every Monday and opens a PR into
   `testing` when n0mjs710/hblink3 `main` or s6-overlay has moved past the pin. The PR only bumps the pin;
@@ -130,9 +132,9 @@ currently past v3.0.0 - the tag predates XLX support), `PARROT_GIT_REF`, `S6_OVE
 Nothing merges or deploys by itself. The usual flow for an upstream PR:
 
 1. read the PR and wait for the build check
-2. merge it into `testing` -> `:v3-test`
-3. run `:v3-test` on the server and check repeater logins, XLX links, the parrot and the dashboard
-4. merge `testing` into `main` -> `:v3`, then pull / redeploy the stack
+2. merge it into `testing` -> `:test`
+3. run `:test` on the server and check repeater logins, XLX links, the parrot and the dashboard
+4. merge `testing` into `main` -> `:latest`, then pull / redeploy the stack
 
 ## moving from the legacy image
 
@@ -149,6 +151,6 @@ python3 v3/migrate_config.py old/hblink.cfg old/rules.py new/hblink.cfg new/rule
 - `MODE: XLXPEER` + `XLXMODULE: 4004` -> `OUTBOUND` + `XLX_MODULE: D`, its `BRIDGES` entry moved to `XLX_BRIDGES`
 - empty `IP:` -> `0.0.0.0`; `EXPORT_AMBE` / `XLXOPTIONS` dropped; `UNIT = []` added if missing
 
-The old files are only read. Then swap the image to `:v3`, mount the new files (and a dashboard `config.py`)
+The old files are only read. Then swap the image to `:latest`, mount the new files (and a dashboard `config.py`)
 as above, and point the proxy's `/ws` at 8080. Both versions use the same ports, so it's a stop / start swap.
-To roll back, put back `:latest` with the old files and the old proxy rule.
+To roll back, put back `:legacy` with the old files and the old proxy rule.

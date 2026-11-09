@@ -150,9 +150,9 @@ ${watch:-- none of the usual suspects (requirements, config parsing, samples, CH
 ### before / after merging
 - [ ] the docker images build check on this branch passed (amd64 + arm64)
 - [ ] read the CHANGELOG; if the config format changed, update \`v3/migrate_config.py\` / the v3 configs on 005 (push to this branch)
-- [ ] merge -> CI publishes \`:v3-test\`
-- [ ] run \`:v3-test\` on 005 (stack hblink3) and check logins, XLX module links, parrot, dashboard
-- [ ] merge \`testing\` -> \`main\` -> CI publishes \`:v3\`, then redeploy the stack
+- [ ] merge -> CI publishes \`:test\`
+- [ ] run \`:test\` on 005 (stack hblink3) and check logins, XLX module links, parrot, dashboard
+- [ ] merge \`testing\` -> \`main\` -> CI publishes \`:latest\`, then redeploy the stack
 
 _opened by the upstream-check workflow - refreshed $(date -u +%Y-%m-%d)_
 EOF
@@ -210,9 +210,9 @@ ${notes:-- could not read the CHANGELOG}
 ### before / after merging
 - [ ] the docker images build check on this branch passed (amd64 + arm64)
 - [ ] check the CHANGELOG for moved paths (services are registered in \`/etc/s6-overlay/user-bundles.d/user/contents.d\`)
-- [ ] merge -> CI publishes \`:test\` && \`:v3-test\`
-- [ ] run \`:v3-test\` on 005 and check all three services start
-- [ ] merge \`testing\` -> \`main\` -> CI publishes \`:latest\` && \`:v3\`, then redeploy the stack
+- [ ] merge -> CI publishes \`:test\` && \`:legacy-test\`
+- [ ] run \`:test\` on 005 and check all three services start
+- [ ] merge \`testing\` -> \`main\` -> CI publishes \`:latest\` && \`:legacy\`, then redeploy the stack
 
 _opened by the upstream-check workflow - refreshed $(date -u +%Y-%m-%d)_
 EOF
