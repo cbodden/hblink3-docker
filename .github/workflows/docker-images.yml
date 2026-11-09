@@ -1,8 +1,9 @@
-## builds the hblink3 image for amd64 + arm64 on native runners
+## builds the hblink3 images for amd64 + arm64 on native runners
 ## and pushes multi-arch tags to docker hub && ghcr
-##   testing branch -> :test
-##   main branch    -> :latest
-##   vX.Y.Z tag     -> :X.Y.Z
+##                    legacy (Dockerfile)   v3 (v3/Dockerfile)
+##   testing branch -> :test                :v3-test
+##   main branch    -> :latest              :v3
+##   vX.Y.Z tag     -> :X.Y.Z               :v3-X.Y.Z
 name: docker images
 
 on:
@@ -11,6 +12,7 @@ on:
     tags: ['v*']
     paths:
       - 'Dockerfile'
+      - 'v3/Dockerfile'
       - '.github/workflows/docker-images.yml'
   schedule:
     - cron: '0 6 * * 1'   # weekly rebuild of main for base image updates
@@ -22,11 +24,14 @@ permissions:
 
 jobs:
   build:
-    name: build ${{ matrix.platform.arch }}
+    name: build ${{ matrix.image.name }} ${{ matrix.platform.arch }}
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       fail-fast: false
       matrix:
+        image:
+          - { name: legacy, file: Dockerfile,    prefix: '',    main_tag: latest }
+          - { name: v3,     file: v3/Dockerfile, prefix: 'v3-', main_tag: v3 }
         platform:
           ## amd64 runners can't always reach archive.ubuntu.com - use azure's mirror
           - { arch: amd64, os: linux/amd64, runner: ubuntu-24.04, ubuntu_mirror: 'http://azure.archive.ubuntu.com/ubuntu' }
@@ -54,11 +59,12 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ${{ matrix.image.file }}
           platforms: ${{ matrix.platform.os }}
           build-args: |
             UBUNTU_MIRROR=${{ matrix.platform.ubuntu_mirror }}
-          cache-from: type=gha,scope=hblink3-docker-${{ matrix.platform.arch }}
-          cache-to: type=gha,mode=max,scope=hblink3-docker-${{ matrix.platform.arch }}
+          cache-from: type=gha,scope=${{ matrix.image.name }}-${{ matrix.platform.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}-${{ matrix.platform.arch }}
           outputs: type=image,"name=docker.io/cbodden/hblink3-docker,ghcr.io/${{ github.repository_owner }}/hblink3-docker",push-by-digest=true,name-canonical=true,push=true
 
       - name: export digest
@@ -69,20 +75,26 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: digests-hblink3-docker-${{ matrix.platform.arch }}
+          name: digests-${{ matrix.image.name }}-${{ matrix.platform.arch }}
           path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
 
   merge:
-    name: publish
+    name: publish ${{ matrix.image.name }}
     runs-on: ubuntu-24.04
     needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - { name: legacy, prefix: '',    main_tag: latest }
+          - { name: v3,     prefix: 'v3-', main_tag: v3 }
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: ${{ runner.temp }}/digests
-          pattern: digests-*
+          pattern: digests-${{ matrix.image.name }}-*
           merge-multiple: true
 
       - uses: docker/setup-buildx-action@v3
@@ -109,9 +121,9 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/hblink3-docker
           flavor: latest=false
           tags: |
-            type=raw,value=test,enable=${{ github.ref == 'refs/heads/testing' }}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=semver,pattern={{version}}
+            type=raw,value=${{ matrix.image.prefix }}test,enable=${{ github.ref == 'refs/heads/testing' }}
+            type=raw,value=${{ matrix.image.main_tag }},enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}},prefix=${{ matrix.image.prefix }}
 
       - name: create multi-arch manifests
         working-directory: ${{ runner.temp }}/digests
