@@ -1,16 +1,32 @@
-version: "3.9"
-
+## example hblink3 v3 stack - see README.md for the config files
+## STORAGE is the folder holding hblink3-docker/ (hblink.cfg, rules.py, config.py, alias/)
 services:
   hblink3:
     container_name: radio-hblink3
     hostname: radio-hblink3
-    image: "cbodden/hblink3-docker:test-arm64"
-    <<: [*defaults]
-    ports:
-      - 8888:8080/tcp
-      - 9999:9000/tcp
+    image: "cbodden/hblink3-docker:v3"
+    ## host networking: hblink listens on one UDP port per SERVER / OUTBOUND / OPENBRIDGE stanza,
+    ## plus the dashboard on 8080/tcp and the reporting feed on 4321/tcp
+    network_mode: host
+    restart: unless-stopped
     volumes:
-      - "${STORAGE}/hblink3-docker/alias/:/alias/"
-      - "${STORAGE}/hblink3-docker/hblink.cfg:/opt/HBlink3/hblink.cfg"
-      - "${STORAGE}/hblink3-docker/rules.py:/opt/HBlink3/rules.py"
-      - "${STORAGE}/hblink3-docker/config.py:/opt/HBmonitor/config.py"
+      - "${STORAGE:?STORAGE not set}/hblink3-docker/hblink.cfg:/opt/HBlink3/hblink.cfg"
+      - "${STORAGE:?STORAGE not set}/hblink3-docker/rules.py:/opt/HBlink3/rules.py"
+      - "${STORAGE:?STORAGE not set}/hblink3-docker/config.py:/opt/HBlink3/dashboard/config.py"
+      - "${STORAGE:?STORAGE not set}/hblink3-docker/alias/:/alias/"
+      - "/etc/localtime:/etc/localtime:ro"
+    ## optional: ship logs to loki (needs the loki docker plugin)
+    # logging:
+    #   driver: loki
+    #   options:
+    #     loki-url: "http://monitoring.local:3100/loki/api/v1/push"
+
+  ## legacy image (lz5pn HBlink3 + HBmonitor) - only for rolling back; its configs use the old format
+  ## and HBmonitor's config.py mounts at /opt/HBmonitor/config.py (web 8080, websocket 9000)
+  # hblink3:
+  #   image: "cbodden/hblink3-docker:latest"
+  #   volumes:
+  #     - "${STORAGE}/hblink3-docker/legacy/hblink.cfg:/opt/HBlink3/hblink.cfg"
+  #     - "${STORAGE}/hblink3-docker/legacy/rules.py:/opt/HBlink3/rules.py"
+  #     - "${STORAGE}/hblink3-docker/legacy/config.py:/opt/HBmonitor/config.py"
+  #     - "${STORAGE}/hblink3-docker/alias/:/alias/"
