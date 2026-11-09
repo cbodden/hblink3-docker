@@ -6,7 +6,7 @@ Multi-arch (amd64 / arm64) images on Docker Hub as `cbodden/hblink3-docker` and 
 
 | service | what | where |
 |---|---|---|
-| `hblink` | `bridge.py` from n0mjs710/hblink3 v3 | one UDP port per system in `hblink.cfg`, reporting feed on 4321/tcp |
+| `hblink` | `bridge.py` from n0mjs710/hblink3 v3 | one UDP port per system in `hblink.cfg`, reporting feed on a unix socket (or 4321/tcp) |
 | `dashboard` | the hblink3 v3 web dashboard | http on 8080, live updates over a websocket at `/ws` |
 | `parrot` | the classic twisted `playback.py` (v3 archived it) | HBP server on 127.0.0.1:54100 |
 
@@ -46,9 +46,9 @@ setting. The parts that matter for this container:
 
 | file | mounted at | notes |
 |---|---|---|
-| `hblink.cfg` | `/opt/HBlink3/hblink.cfg` | `[REPORTS]` must have `REPORT: True`, `REPORT_PORT: 4321`, `REPORT_CLIENTS: 127.0.0.1` for the dashboard |
+| `hblink.cfg` | `/opt/HBlink3/hblink.cfg` | `[REPORTS]` needs `REPORT: True`, `REPORT_PORT` and `REPORT_CLIENTS` (read even when unused); add `REPORT_TRANSPORT: unix` and `REPORT_SOCKET: /tmp/hblink3-report.sock` so the feed doesn't listen on the host network |
 | `rules.py` | `/opt/HBlink3/rules.py` | must define `BRIDGES` and `UNIT` (`UNIT = []` is fine); XLX systems go in `XLX_BRIDGES` |
-| `config.py` | `/opt/HBlink3/dashboard/config.py` | dashboard: `HBLINK_IP = '127.0.0.1'`, `HBLINK_PORT = 4321`, `WEB_PORT = 8080` |
+| `config.py` | `/opt/HBlink3/dashboard/config.py` | dashboard: `HBLINK_TRANSPORT = 'unix'` + `HBLINK_SOCKET` matching hblink.cfg (or `HBLINK_IP` / `HBLINK_PORT` for tcp), `WEB_PORT = 8080`, and `FILTER_COUNTRIES` to keep the alias database (and RAM) small |
 | `alias/` | `/alias/` | radioid peer / subscriber / talkgroup files the dashboard downloads and reads (`PATH = '/alias/'`) |
 
 v3 gotchas:
