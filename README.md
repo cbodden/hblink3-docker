@@ -24,6 +24,20 @@ Needs the repo secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`.
 
 Upstream repos and s6-overlay are pinned by `ARG`s at the top of each Dockerfile.
 
+## upstream check
+
+`.github/workflows/upstream-check.yml` runs every Monday (from `main`) and compares the pins with upstream:
+
+- n0mjs710/hblink3 `main` vs `HBLINK_GIT_REF` in `v3/Dockerfile`
+- the latest s6-overlay release vs `S6_OVERLAY_VERSION` in both Dockerfiles
+
+When one has moved it opens a PR into `testing` from `upstream/<name>-<version>` that bumps the pin, with the
+new commits / CHANGELOG (including anything marked "Action required") in the description, and starts a
+docker images build on that branch as a check. Nothing merges or deploys on its own. A newer version
+supersedes (closes) the older PR; closing a PR without merging stops that version being proposed again.
+Run it by hand from the Actions tab (`dry_run` reports only). Needs "Allow GitHub Actions to create and
+approve pull requests" on in the repo settings.
+
 ## volumes
 
 | legacy | v3 | |
