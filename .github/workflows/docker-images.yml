@@ -1,9 +1,9 @@
 ## builds the hblink3 images for amd64 + arm64 on native runners
 ## and pushes multi-arch tags to docker hub && ghcr
-##                    legacy (Dockerfile)   v3 (v3/Dockerfile)
-##   testing branch -> :test                :v3-test
-##   main branch    -> :latest              :v3
-##   vX.Y.Z tag     -> :X.Y.Z               :v3-X.Y.Z
+##                    v3 (v3/Dockerfile)     legacy (Dockerfile)
+##   testing branch -> :test                 :legacy-test
+##   main branch    -> :latest (+ :v3)       :legacy
+##   vX.Y.Z tag     -> :X.Y.Z                :legacy-X.Y.Z
 name: docker images
 
 on:
@@ -30,8 +30,8 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - { name: legacy, file: Dockerfile,    prefix: '',    main_tag: latest }
-          - { name: v3,     file: v3/Dockerfile, prefix: 'v3-', main_tag: v3 }
+          - { name: legacy, file: Dockerfile,    prefix: 'legacy-', main_tag: legacy }
+          - { name: v3,     file: v3/Dockerfile, prefix: '',        main_tag: latest }
         platform:
           ## amd64 runners can't always reach archive.ubuntu.com - use azure's mirror
           - { arch: amd64, os: linux/amd64, runner: ubuntu-24.04, ubuntu_mirror: 'http://azure.archive.ubuntu.com/ubuntu' }
@@ -88,8 +88,9 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - { name: legacy, prefix: '',    main_tag: latest }
-          - { name: v3,     prefix: 'v3-', main_tag: v3 }
+          ## alias: an extra main-branch tag (:v3 kept so stacks pinned to it keep working)
+          - { name: legacy, prefix: 'legacy-', main_tag: legacy, alias: '' }
+          - { name: v3,     prefix: '',        main_tag: latest, alias: v3 }
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -123,6 +124,7 @@ jobs:
           tags: |
             type=raw,value=${{ matrix.image.prefix }}test,enable=${{ github.ref == 'refs/heads/testing' }}
             type=raw,value=${{ matrix.image.main_tag }},enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=${{ matrix.image.alias }},enable=${{ github.ref == 'refs/heads/main' && matrix.image.alias != '' }}
             type=semver,pattern={{version}},prefix=${{ matrix.image.prefix }}
 
       - name: create multi-arch manifests
