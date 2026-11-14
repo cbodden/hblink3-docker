@@ -10,6 +10,44 @@ Multi-arch (amd64 / arm64) images on Docker Hub as `cbodden/hblink3-docker` and 
 | `dashboard` | the hblink3 v3 web dashboard | http on 8080, live updates over a websocket at `/ws` |
 | `parrot` | the classic twisted `playback.py` (v3 archived it) | HBP server on 127.0.0.1:54100 |
 
+## images
+
+| image | Docker Hub | GHCR | architectures | base image |
+| :---- | :--------- | :--- | :------------ | :--------- |
+| v3 (`v3/Dockerfile`) - **use this** | [cbodden/hblink3-docker](https://hub.docker.com/r/cbodden/hblink3-docker/tags) `:latest` | `ghcr.io/cbodden/hblink3-docker:latest` | x86_64, ARM64/v8 | Alpine 3.23 |
+| legacy (`Dockerfile`) - kept for rollback | [cbodden/hblink3-docker](https://hub.docker.com/r/cbodden/hblink3-docker/tags) `:legacy` | `ghcr.io/cbodden/hblink3-docker:legacy` | x86_64, ARM64/v8 | Ubuntu 24.04 |
+
+| tag (v3) | tag (legacy) | built from |
+| :------- | :----------- | :--------- |
+| `latest` (also `v3`) | `legacy` | `main` branch (also rebuilt weekly for base image updates) |
+| `test` | `legacy-test` | `testing` branch |
+| `X.Y.Z`, `X.Y.Z-N` | `legacy-X.Y.Z`, `legacy-X.Y.Z-N` | `vX.Y.Z` / `vX.Y.Z-N` git tags - fixed, never move, use these to roll back |
+
+`X.Y.Z` is the n0mjs710/hblink3 release the v3 image is built from, `-N` counts this repo's releases on top
+of it; what changed in each one is in [`CHANGELOG.md`](CHANGELOG.md) and on the
+[releases page](https://github.com/cbodden/hblink3-docker/releases). `3.0.0-1` is the last v3 image on
+Ubuntu 24.04, `3.0.0-2` the first on Alpine. Before 2026-11-09 `:latest` was the legacy image and v3 was `:v3`.
+
+### versions
+
+v3 image:
+- HBlink3 + dashboard: [n0mjs710/hblink3](https://github.com/n0mjs710/hblink3) `f9292c2` (past v3.0.0 - the
+  tag predates XLX support)
+- parrot: `playback.py` from [lz5pn/HBlink3](https://github.com/lz5pn/HBlink3) `23a260e`, Twisted 24.3.0
+- Python: 3.12 (Alpine's)
+- S6 Overlay: 3.2.3.2
+- Alpine: 3.23
+
+legacy image (frozen upstream):
+- HBlink3: [lz5pn/HBlink3](https://github.com/lz5pn/HBlink3) `23a260e` (2020)
+- HBmonitor: [sp2ong/HBmonitor](https://github.com/sp2ong/HBmonitor) `1bb168d` (archived)
+- S6 Overlay: 3.2.3.2
+- Ubuntu: 24.04 (it needs Ubuntu's Twisted packages)
+
+Every upstream source is pinned by an `ARG` at the top of its Dockerfile (`HBLINK_GIT_REF`, `PARROT_GIT_REF`,
+`HBMON_GIT_REF`, `S6_OVERLAY_VERSION`), so rebuilds are reproducible and upstream changes only come in on
+purpose, through the weekly upstream-check PRs (see [CI](#ci)).
+
 ## quick start
 
 1. make a folder for the config (the example compose file uses `${STORAGE}/hblink3-docker`) and copy the samples
@@ -101,20 +139,7 @@ Send everything, including `/ws`, to port 8080 and let websocket upgrades throug
 the dashboard serves its websocket there itself. (HBmonitor, in the legacy image, used a separate port
 9000 behind a stripped `/ws`.)
 
-## images && tags
-
-| tag | built from | |
-|---|---|---|
-| `:latest` | `v3/Dockerfile` on `main` | **use this** (also published as `:v3`) |
-| `:test` | `v3/Dockerfile` on `testing` | for trying changes before they reach `main` |
-| `:legacy` / `:legacy-test` | `Dockerfile` on `main` / `testing` | legacy: [lz5pn/HBlink3](https://github.com/lz5pn/HBlink3) (frozen 2020) + [HBmonitor](https://github.com/sp2ong/HBmonitor) (archived) - kept for rollback |
-| `:X.Y.Z[-N]` / `:legacy-X.Y.Z[-N]` | a `vX.Y.Z[-N]` git tag | `X.Y.Z` = the n0mjs710/hblink3 release, `-N` = this repo's releases on top of it; changes per version in [`CHANGELOG.md`](CHANGELOG.md) |
-
-Before 2026-11-09 the tags were the other way round (`:latest` was the legacy image, v3 was `:v3`).
-
-Every upstream source is pinned by an `ARG` at the top of its Dockerfile: `HBLINK_GIT_REF` (n0mjs710/hblink3,
-currently past v3.0.0 - the tag predates XLX support), `PARROT_GIT_REF`, `S6_OVERLAY_VERSION`. The v3 image is
-based on `alpine:3.23` (Python 3.12), the legacy image on `ubuntu:24.04` (it needs Ubuntu's Twisted packages).
+## building and releasing
 
 ### CI
 

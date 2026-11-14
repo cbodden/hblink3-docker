@@ -41,7 +41,7 @@ jobs:
             echo "::error::CHANGELOG.md has no '## [${ver}]' section - add it, then re-run this workflow for ${TAG}"
             exit 1
           fi
-          printf '\n**Images:** `cbodden/hblink3-docker:%s` (v3) and `cbodden/hblink3-docker:legacy-%s` on Docker Hub, same tags on `ghcr.io/cbodden/hblink3-docker` - see the [README](https://github.com/%s/blob/%s/README.md#images--tags).\n' \
+          printf '\n**Images:** `cbodden/hblink3-docker:%s` (v3) and `cbodden/hblink3-docker:legacy-%s` on Docker Hub, same tags on `ghcr.io/cbodden/hblink3-docker` - see the [README](https://github.com/%s/blob/%s/README.md#images).\n' \
             "${ver}" "${ver}" "${GITHUB_REPOSITORY}" "${TAG}" >> "${RUNNER_TEMP}/notes.md"
           cat "${RUNNER_TEMP}/notes.md"
 
