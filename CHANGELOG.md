@@ -11,8 +11,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+
+## [3.0.0-2] - 2026-11-14
+
 ### Changed
+- v3 image: base `ubuntu:24.04` -> `alpine:3.23` (still Python 3.12; every dependency has musl wheels). Image
+  331 -> 173 MB uncompressed (amd64). The legacy image stays on Ubuntu (#8, #11)
 - Upstream check no longer runs (as a dry run) on every `v*` tag push - its `push` trigger is limited to branches
+  (#12)
 
 
 ## [3.0.0-1] - 2026-11-14
@@ -42,5 +48,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `configs/` (legacy-format sample configs) and the old `manifest-*.yaml` multi-arch files (#4, #5)
 
 
-[Unreleased]: https://github.com/cbodden/hblink3-docker/compare/v3.0.0-1...HEAD
+[Unreleased]: https://github.com/cbodden/hblink3-docker/compare/v3.0.0-2...HEAD
+[3.0.0-2]: https://github.com/cbodden/hblink3-docker/compare/v3.0.0-1...v3.0.0-2
 [3.0.0-1]: https://github.com/cbodden/hblink3-docker/releases/tag/v3.0.0-1

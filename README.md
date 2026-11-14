@@ -113,8 +113,8 @@ the dashboard serves its websocket there itself. (HBmonitor, in the legacy image
 Before 2026-11-09 the tags were the other way round (`:latest` was the legacy image, v3 was `:v3`).
 
 Every upstream source is pinned by an `ARG` at the top of its Dockerfile: `HBLINK_GIT_REF` (n0mjs710/hblink3,
-currently past v3.0.0 - the tag predates XLX support), `PARROT_GIT_REF`, `S6_OVERLAY_VERSION`, and the base is
-`ubuntu:24.04`.
+currently past v3.0.0 - the tag predates XLX support), `PARROT_GIT_REF`, `S6_OVERLAY_VERSION`. The v3 image is
+based on `alpine:3.23` (Python 3.12), the legacy image on `ubuntu:24.04` (it needs Ubuntu's Twisted packages).
 
 ### CI
 
