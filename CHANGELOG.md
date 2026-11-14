@@ -12,6 +12,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Changed
+- v3 image: base `ubuntu:24.04` -> `alpine:3.23` (still Python 3.12; every dependency has musl wheels). Image
+  331 -> 173 MB uncompressed (amd64). The legacy image stays on Ubuntu (#8)
 - Upstream check no longer runs (as a dry run) on every `v*` tag push - its `push` trigger is limited to branches
 
 
