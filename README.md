@@ -108,7 +108,7 @@ the dashboard serves its websocket there itself. (HBmonitor, in the legacy image
 | `:latest` | `v3/Dockerfile` on `main` | **use this** (also published as `:v3`) |
 | `:test` | `v3/Dockerfile` on `testing` | for trying changes before they reach `main` |
 | `:legacy` / `:legacy-test` | `Dockerfile` on `main` / `testing` | legacy: [lz5pn/HBlink3](https://github.com/lz5pn/HBlink3) (frozen 2020) + [HBmonitor](https://github.com/sp2ong/HBmonitor) (archived) - kept for rollback |
-| `:X.Y.Z` / `:legacy-X.Y.Z` | a `vX.Y.Z` git tag | |
+| `:X.Y.Z[-N]` / `:legacy-X.Y.Z[-N]` | a `vX.Y.Z[-N]` git tag | `X.Y.Z` = the n0mjs710/hblink3 release, `-N` = this repo's releases on top of it; changes per version in [`CHANGELOG.md`](CHANGELOG.md) |
 
 Before 2026-11-09 the tags were the other way round (`:latest` was the legacy image, v3 was `:v3`).
 
@@ -128,13 +128,23 @@ currently past v3.0.0 - the tag predates XLX support), `PARROT_GIT_REF`, `S6_OVE
   check, and an image build runs on the branch as a check. A newer version closes the older PR; closing a PR
   without merging stops that version being proposed again. Needs "Allow GitHub Actions to create and approve
   pull requests" on in the repo settings.
+- [`release.yml`](.github/workflows/release.yml) runs on a `v*` tag push and creates the GitHub release, with
+  that version's section of [`CHANGELOG.md`](CHANGELOG.md) as the notes - it fails if the section is missing.
+  Re-run it from the Actions tab with the tag to create or refresh the release of an existing tag (it then
+  reads `CHANGELOG.md` from `main`). The same tag push builds `:X.Y.Z[-N]` / `:legacy-X.Y.Z[-N]`.
 
 Nothing merges or deploys by itself. The usual flow for an upstream PR:
 
 1. read the PR and wait for the build check
-2. merge it into `testing` -> `:test`
-3. run `:test` on the server and check repeater logins, XLX links, the parrot and the dashboard
-4. merge `testing` into `main` -> `:latest`, then pull / redeploy the stack
+2. add a line under `## [Unreleased]` in `CHANGELOG.md` (push it to the PR branch)
+3. merge it into `testing` -> `:test`
+4. run `:test` on the server and check repeater logins, XLX links, the parrot and the dashboard
+5. merge `testing` into `main` -> `:latest`, then pull / redeploy the stack
+
+Releasing: rename `## [Unreleased]` to the version (`## [3.0.0-2] - YYYY-MM-DD`), add a new empty
+`## [Unreleased]` above it and the compare links at the bottom, merge that to `main`, then tag `main`
+(`v3.0.0-2`). Bump `-N` for changes to this repo; when the pin reaches a new n0mjs710/hblink3 release, the
+next tag is that release (`v3.1.0`), then `v3.1.0-1`, ...
 
 ## moving from the legacy image
 
