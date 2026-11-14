@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1-labs
 ## hblink3 v3 (n0mjs710/hblink3) + its dashboard + the legacy twisted parrot
-FROM ubuntu:24.04 AS base
+## alpine 3.23 keeps python 3.12 (what ubuntu 24.04 ran); 3.24 moves to 3.14
+FROM alpine:3.23 AS base
 
 ENV TERM="xterm" LANG="C.UTF-8" LC_ALL="C.UTF-8"
 ARG TARGETARCH
@@ -10,23 +11,12 @@ ARG S6_OVERLAY_ADDRESS=https://github.com/just-containers/s6-overlay/releases/do
 ARG HBLINK_GIT_REF=f9292c24eba1de6172c80ddd29f364b2a92dd271
 ## lz5pn/HBlink3 - only its playback.py (parrot) is used, v3 archived it
 ARG PARROT_GIT_REF=23a260e8def6a118d6cf850954d9d475f1d78177
-## optional ubuntu archive mirror (ex: http://azure.archive.ubuntu.com/ubuntu on github amd64 runners)
-ARG UBUNTU_MIRROR
 
-## apt updates and adds
-RUN if [ -n "${UBUNTU_MIRROR}" ]; then \
-        sed -i "s|http://archive.ubuntu.com/ubuntu|${UBUNTU_MIRROR}|g" /etc/apt/sources.list.d/ubuntu.sources ; \
-    fi \
-    && echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries \
-    && echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections \
-    && apt update \
-    && apt upgrade -y \
-    && apt install -y \
+## apk adds (python3 includes venv, busybox has wget)
+RUN apk add --no-cache \
         ca-certificates \
         python3 \
-        python3-venv \
-        wget \
-        xz-utils
+        xz
 
 ############################
 ###### HBlink install ######
@@ -144,11 +134,7 @@ RUN touch /etc/s6-overlay/user-bundles.d/user/contents.d/dashboard
 ###### cleanup ######
 #####################
 
-RUN apt -y autoremove \
-    && apt -y clean \
-    && rm -rf /tmp/* \
-    && rm -rf /var/tmp/* \
-    && rm -rf /src
+RUN rm -rf /tmp/* /var/tmp/* /src /root/.cache
 
 ############################
 ###### exposing ports ######

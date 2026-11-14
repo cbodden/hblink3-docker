@@ -26,6 +26,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - This changelog, and a GitHub release for each `v*` tag (#9)
 
 ### Changed
+- v3 image: base `ubuntu:24.04` -> `alpine:3.23` (still Python 3.12; every dependency has musl wheels). Image
+  331 -> 173 MB uncompressed (amd64). The legacy image stays on Ubuntu (#8)
 - Tags: v3 is `:latest` / `:test` / `:X.Y.Z` (and still `:v3` on `main`); the legacy image moved to `:legacy` /
   `:legacy-test` / `:legacy-X.Y.Z`. **`:latest` changed meaning** - pull `:legacy` for the old image (#7)
 - Legacy image: s6-overlay 3.2.0.2 -> 3.2.3.2 (services in `/etc/s6-overlay/user-bundles.d/user`), dmr_utils3
